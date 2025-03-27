@@ -1,0 +1,70 @@
+// Main Colang file for speech-to-speech bot with barge-in support
+
+// Import standard libraries
+import stdlib.utils.time
+import stdlib.utils.context
+
+// Import custom speech flows
+import speech
+
+// Technical helper flows
+flow technical_helper
+  // Helper flows for notifying errors
+  activate notification of undefined flow start "I have encountered some technical issue!"
+  activate notification of colang errors "I have encountered some technical issue!"
+
+// Greeting flow
+flow handle_greeting
+  user said "hello" or user said "hi" or user said "hey" or user said "good morning" or user said "good afternoon" or user said "good evening"
+  bot say "Hello! How can I assist you today?"
+
+// Farewell flow
+flow handle_farewell
+  user said "goodbye" or user said "bye" or user said "see you" or user said "see you later" or user said "talk to you later"
+  bot say "Goodbye! It was nice talking to you. Feel free to chat again anytime."
+
+// Bot introduction flow
+flow handle_bot_introduction
+  user asked "who are you" or user asked "what are you" or user asked "what's your name" or user said "tell me about yourself"
+  bot say "I'm Emma, a conversational assistant. I'm here to chat with you about various topics and help answer your questions. What would you like to talk about today?"
+
+// Bot capabilities flow
+flow handle_bot_capabilities
+  user asked "what can you do" or user asked "how can you help me" or user asked "what are your capabilities"
+  bot say "I can have conversations with you on a wide range of topics. I can answer questions, discuss ideas, or just chat about day-to-day things. What would you like to talk about?"
+
+// Weather inquiry flow
+flow handle_weather_inquiry
+  user asked about "weather"
+  bot say "I don't have access to real-time weather information, but I'd be happy to chat about other topics. Is there something else you'd like to discuss?"
+
+// Time inquiry flow
+flow handle_time_inquiry
+  user asked about "time" or user asked "what time is it" or user asked "what's the time"
+  bot say "I don't have access to the current time, but I'd be happy to chat about other topics. Is there something else you'd like to discuss?"
+
+// Conversation flow with barge-in support
+flow conversation
+  // Wait for user to say something (using the interim transcript mode)
+  user partially said something as $ref
+  
+  // Log the transcript
+  await LogTranscriptAction(transcript=$ref.transcript)
+  
+  // Generate a response
+  $response = await context.generate_response($ref.transcript)
+  
+  // Say the response
+  bot say $response
+
+// Main flow
+flow main
+  // Activate technical helper flows
+  activate technical_helper
+  
+  // Activate barge-in support with interim transcript mode
+  // Add list of flows to stop during user interruption
+  activate handle user transcript with interruption $mode="interim" $stop_flows_list=["_bot_say", "conversation"]
+  
+  // Activate conversation flow
+  activate conversation

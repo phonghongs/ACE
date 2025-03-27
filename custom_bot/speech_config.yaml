@@ -1,0 +1,49 @@
+grpc_server:
+  nvidia::rrt::BotRuntimeGrpc: # component type
+    ip_address: "0.0.0.0"
+    port_number: 50055
+    virtual_assistant_num_instances: 30
+    virtual_assistant_pipeline_idle_threshold_secs: 600
+    virtual_assistant_pipeline_idle_handler_wakeup_rate_secs: 10
+
+speech_pipeline_manager: # config name
+  SpeechPipelineManager: # component name
+    asr_idle_timeout_ms: 200000
+    tts_eos_delay_ms: 2000
+
+# Note: We're not using Riva ASR and TTS, but we still need these configurations
+# for ACE to work properly. The actual speech processing will be handled by our
+# custom components using OpenAI Whisper and ElevenLabs.
+
+riva_asr:
+  RivaASR:
+    server: "localhost:50051"
+    word_boost_file_path: "/workspace/config/asr_words_to_boost.txt"
+    enable_profanity_filter: false
+    # Configure two-pass End of Utterance (EOU) detection
+    endpointing_stop_history: 800  # Second pass End of User Speech (800ms)
+    endpointing_stop_history_eou: 240  # First pass End of User Speech (240ms)
+
+dialog_manager:
+  DialogManager:
+    server: "http://localhost:9000"
+    use_streaming: true
+
+riva_tts:
+  RivaTTS:
+    # Use HTTP mode for ElevenLabs TTS integration
+    tts_mode: "http"
+    voice_name: "Adam"  # ElevenLabs voice name
+    server: "http://elevenlabs-tts:5000/tts"  # Custom ElevenLabs TTS service
+    language: "en-US"
+    ipa_dict: ""
+    sample_rate: 44100
+    chunk_duration_ms: 100
+    audio_start_threshold_ms: 400
+    send_audio_in_realtime: true
+    model_name: "eleven_monolingual_v1"  # ElevenLabs model
+
+riva_logger:
+  RivaLogger:
+    data_dump_path: "/workspace/log"
+    enable_logging: true

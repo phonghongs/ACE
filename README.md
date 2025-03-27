@@ -1,95 +1,120 @@
-NVIDIA ACE
---------
+# Enhanced Speech-to-Speech Application with NVIDIA ACE
 
-NVIDIA ACE is a suite of technologies that help developers bring digital humans to life with generative AI. ACE NIMs are microservices designed to run in the cloud or on PC.
+This project implements an enhanced speech-to-speech conversational AI application using NVIDIA's Avatar Cloud Engine (ACE) framework with custom speech components. The application uses OpenAI Whisper API for speech-to-text (STT) and ElevenLabs API for text-to-speech (TTS) instead of the default NVIDIA Riva components.
 
-![](https://lh7-us.googleusercontent.com/FJKnZYOQX34lHQ_OccHOvSXFfsFg3RyY1LWgg9_s5NA1RrQr4XH8cA5T3CvuQmysig74EpxQFbOwN4OP-CpQgYNGbjIpC6ior7YlhYPdqMI95fP-_Kv5dkZB_RSegAQ-m6-yzN2n-uwFjDAZB1rlPKQ)
+## Features
 
-On this Git repo, you will find samples and reference applications using ACE NIMs and microservices.  However, these microservices can be obtained through an evaluation license of NV AI Enterprise(NVAIE) through NGC.
+- **Speech-to-speech conversation** with a conversational AI bot
+- **Custom speech components** using OpenAI Whisper and ElevenLabs
+- **Low latency** with two-pass End of Utterance (EOU) detection
+- **Barge-in support** for natural conversation flow
+- **Event-based architecture** using Redis for communication
+- **Docker-based deployment** for easy setup
+- **Extensible** for future integration with animation components
 
-1. [Try NIM For Digital Human](https://build.nvidia.com/explore/gaming)
-2. [Get NVIDIA AI Enterprise](https://docs.nvidia.com/ai-enterprise/latest/quick-start-guide/index.html#getting-your-nvidia-grid-software)
-3. [Download ACE Microservices](https://catalog.ngc.nvidia.com/?filters=&orderBy=scoreDESC&query=ace&page=&pageSize=)
+## Prerequisites
 
+- Docker and Docker Compose
+- OpenAI API key for Whisper
+- ElevenLabs API key
+- (Optional) NGC API key for pulling ACE images
+- Audio input/output capabilities
 
-ACE Technologies
-------
-|                    Technology                   |                                Description                              |          Software   Support        |     Cloud   Deployment    |     Windows   Deployment    |
-|:-----------------------------------------------:|:-----------------------------------------------------------------------:|:----------------------------------:|:-------------------------:|:---------------------------:|
-|     Riva      Automatic Speech   Recognition    |                            Speech   -&gt; Text                          |        NVIDIA   AI Enterprise      |              X            |         Coming   Soon       |
-|      Riva      Neural Machine   Translation     |                            Text   Translation                           |        NVIDIA   AI Enterprise      |              X            |                             |
-|             Riva      Text-to-Speech            |                            Text   -&gt; Speech                          |        NVIDIA   AI Enterprise      |              X            |         Coming   Soon       |
-|                    Audio2Face                   |           Audio   -&gt; Blendshapes      for   Facial Lip-sync          |        NVIDIA   AI Enterprise      |              X            |         Coming   Soon       |
-|                     AnimGraph                   |                          Animation   controller                         |        NVIDIA   AI Enterprise      |              X            |                             |
-|             Omniverse RTX Rendering Microservice           |                     Omniverse   Based Pixel Streamer                    |        NVIDIA   AI Enterprise      |              X            |                             |
-|                     ACE Agent                   |                Conversational   Controller, RAG Workflows               |        NVIDIA   AI Enterprise      |              X            |                             |
-|           Maxine Speech   Live Portrait         |                    2D   Picture Lipsync and Animation                   |     Early   Access   Evaluation    |              X            |                             |
-|                Nemotron-3 4.5B SLM              |                          Small   Language Model                         |      Early   Access Evaluation     |        Coming   Soon      |               X             |
-|             Gaming Reference Workflow           |                    Audio2Face   Unreal Engine Examples                  |          Example   Workflow        |              X            |         Coming   Soon       |
-|       Customer Service Reference   Workflow     |     Full   reference workflow of customer service and kiosk usecases    |       Example   Workflow           |              X            |                             |
+## Setup
 
+1. Clone this repository:
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
 
-The Key Benefits of ACE
---------
+2. Set up API keys:
+   - Edit the `.env` file and add your OpenAI API key and ElevenLabs API key
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+   ```
+   - (Optional) Add your NGC API key if you need to pull ACE images
 
-### State-of-the-Art Models and Microservices
+3. Build and start the application:
+   ```bash
+   docker-compose up -d
+   ```
 
-NVIDIA pre-trained models provide industry-leading quality and real-time performance.
+4. Access the web UI:
+   - Open a web browser and navigate to `http://localhost:7006/`
 
-### Safe and Consistent Results
+## Usage
 
-AI models  trained on commercially safe, responsibly licensed data. Fine-tuning and guardrails enable accurate, appropriate, and on-topic results no matter the user's input.
+1. Start the application using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
 
-### Flexible Deployment Options
+2. Speak into your microphone to interact with the bot
+   - The Whisper ASR component will transcribe your speech
+   - The ACE Chat Engine will process your input and generate a response
+   - The ElevenLabs TTS component will convert the response to speech
 
-Handle inference through any public or private cloud, Windows PC, or a mix of both.
+3. Experience enhanced conversation features:
+   - **Low latency responses**: The system uses a two-pass approach to detect the end of your speech, starting to process your input after just 240ms of silence
+   - **Barge-in capability**: You can interrupt the bot while it's speaking, and it will stop and listen to you
+   - **Natural conversation flow**: The system filters out spurious transcripts and filler words
 
-## Digital Human Workflows
+4. Stop the application:
+   ```bash
+   docker-compose down
+   ```
 
-Developers can leverage ACE to build their own digital human solutions from the ground up, or use NVIDIA's suite of domain-specific AI workflows for next-generation non-playable game characters (NPCs), interactive digital assistants for customer service, and digital avatars for real-time communication.
+## Architecture
 
-### Gaming Characters
+The application uses a hybrid architecture that leverages ACE's event-based interface while integrating custom speech components:
 
-NVIDIA Kairos Sample showcases an easy to use Unreal Engine project using the Audio2Face microservice. This sample shows how to connect Audio2Face to Metahuman and configure the Audio2Face microserivce. 
+```
+User Audio → Whisper ASR → Redis Event Stream → ACE Chat Engine → Redis Event Stream → ElevenLabs TTS → Audio Output
+```
 
-[Learn More About ACE NIMs for Gaming](https://build.nvidia.com/explore/gaming)
+- **Whisper ASR**: Captures audio from the microphone, sends it to the OpenAI Whisper API for transcription, and publishes the results to Redis
+- **ACE Chat Engine**: Processes the transcribed text and generates a response based on the conversational context
+- **ElevenLabs TTS**: Listens for bot responses from Redis, sends the text to the ElevenLabs API for speech synthesis, and plays the audio back to the user
+- **Redis**: Provides event streaming for communication between components
+- **Chat Controller**: Manages the conversation flow and coordinates between components
 
-### Customer Service
+## Advanced Features
 
-NVIDIA Tokkio is a digital assistant workflow built with ACE, bringing AI-powered customer service capabilities to healthcare, financial services, and retail. It comes to life using state-of-the-art real-time language, speech, and animation generative AI models alongside retrieval augmented generation (RAG) to convey specific and up-to-date information to customers.
+### Low Latency with Two-Pass EOU
 
-[Learn More Tokkio Customer Service Workflow](https://developer.nvidia.com/nvidia-omniverse-platform/ace/tokkio-showcase)
+The system uses a two-pass approach to detect the end of user speech:
+- First pass (240ms): Triggers an interim transcript for early processing
+- Second pass (800ms): Confirms the final transcript
 
-Documentation and Tutorials
--------------
-Full ACE [developer documenation](https://docs.nvidia.com/ace/latest/index.html)
+This approach reduces perceived latency while maintaining transcription quality.
 
-| Component | Documentation | Video/Tutorial |
-| ------ | ------ | ------ |
-|      Getting Started  |        | [NVIDIA Docker Setup](https://youtu.be/2uWXeIol468), [Install Kubernetes](https://www.youtube.com/watch?v=ACIkyiWglW4) |
-|     NVIDIA UCS   | [Documentation](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/ucs-ms/resources/ucs_tools/version) ||
-|NVIDIA Audio2Face| [Documentation](https://docs.nvidia.com/ace/latest/modules/a2f-docs/index.html) | Coming soon! |
-|NVIDIA Riva ASR| [Documentation](https://docs.nvidia.com/deeplearning/riva/user-guide/docs/asr/asr-overview.html)|Coming soon! |
-|NVIDIA Riva TTS| [Documentation](https://docs.nvidia.com/deeplearning/riva/user-guide/docs/tts/tts-overview.html)|Coming soon! |
-|NVIDIA Riva NMT|[Documentation](https://docs.nvidia.com/deeplearning/riva/user-guide/docs/translation/translation-overview.html) |Coming soon! |
-|NVIDIA ACE Agent Microservices|[Documentation](https://docs.nvidia.com/ace/latest/modules/ace_agent/index.html)|Coming soon! |
-|NVIDIA Maxine Live Portrait|[Documentation](https://registry.ngc.nvidia.com/orgs/eevaigoeixww/teams/live-portrait-ms/resources/live_portrait_user_guide)|Coming soon! |
-|NVIDIA Avatar Configurator & Avatar Customization|[Documentation](https://docs.nvidia.com/ace/latest/modules/avatar_customization/Avatar_Configurator.html)|Coming soon! |
-|NVIDIA Animation Graph Microservice|[Documentation](https://docs.nvidia.com/ace/latest/modules/animation_graph_microservice/index.html)|Coming soon! |
-|NVIDIA Omniverse Renderer Microservice|[Documentation](https://docs.nvidia.com/ace/latest/modules/omniverse_renderer_microservice/index.html)|Coming soon! |
+### Barge-In Support
 
-### Example Workflows
+The system supports barge-in, allowing users to interrupt the bot while it's speaking:
+- When user speech is detected during bot speech, the TTS playback is stopped
+- The system then processes the new user input
+- This creates a more natural conversation flow
 
-| Example | Description | Video |
-| ------ | ------ | ------ |
-|     Text-to-Gesture   |   Text-to-Gesture using A2X & Animation Graph Microservices     | [Creation of Basic Sentiment Analysis Utility](https://www.youtube.com/watch?v=g3Vb7EhlEUA),  [Connecting all Microservices in UCF](https://www.youtube.com/watch?v=TP4RD-T0GOI),  [Deployment & App Execution](https://www.youtube.com/watch?v=EHyga9smaSA)|
-|    Reallusion Character    |   Exporting Character in Reallusion Character Creator + Audio2Face     | [Exporting Character from Reallusion Character Creator & Preparing Character in Audio2Face](https://www.youtube.com/watch?v=_Vkiup06lYQ), [Setup, streaming through a Reference App & Fine Tuning](https://www.youtube.com/watch?v=3xBhOKHbrFU)|
-|      Stylised Avatar  |    Building Stylised Avatar Pipeline with ACE Components    | [Making & Animating a Stylised 3D Avatar From Text Inputs](https://www.youtube.com/watch?v=cnyy0mlL8C0), [Make Vincent Rig Compatible for UE5 & A2X LiveLink](https://www.youtube.com/watch?v=2MgzVluShtc), [Make Vincent Blueprint Receive A2X Animation Data](https://www.youtube.com/watch?v=fpthK6WHjX8), [Create Python App to Generate Audio from Text & Animate Vincent](https://www.youtube.com/watch?v=g14c2gcbowM)|
+### Spurious Transcript Filtering
 
+The system filters out spurious transcripts and filler words to avoid unnecessary interruptions and improve conversation quality.
 
-License
--------
+## Future Extensions
 
-Github - [Apache 2](https://www.apache.org/licenses/LICENSE-2.0.txt)
+The architecture is designed to be scalable for future integration with animation components:
 
-ACE NIMs and NGC Microservices - [NVIDIA AI Product License](https://www.nvidia.com/en-us/data-center/products/nvidia-ai-enterprise/eula/)
+- **Audio2Face**: Can be integrated to generate facial animations from the synthesized speech
+- **Animation Graph**: Can be integrated to coordinate body movements for a fully animated avatar
+
+## Troubleshooting
+
+- **Audio Issues**: Make sure your microphone and speakers are properly configured and accessible to Docker
+- **API Key Issues**: Verify that your API keys are correctly set in the `.env` file
+- **Docker Issues**: Make sure Docker and Docker Compose are properly installed and running
+- **Latency Issues**: If you experience high latency, check your internet connection as the system relies on external APIs
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

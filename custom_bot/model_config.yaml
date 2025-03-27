@@ -1,0 +1,15 @@
+model_servers:
+  - name: openai
+    engine: openai
+    models:
+      - name: gpt-4-turbo
+        engine: openai
+        model: gpt-4-turbo
+  
+  # Custom speech components
+  - name: custom_speech
+    speech_models:
+      # These are placeholders since we're using custom components
+      # but ACE still needs these configurations
+      - nvidia/ace/rmir_asr_parakeet_1-1b_en_us_str_vad:2.17.0
+    url: localhost:8001

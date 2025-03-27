@@ -1,0 +1,75 @@
+// Speech-related flows for handling interim transcripts and barge-in support
+
+import core
+
+// Global variables for transcript handling
+global $active_transcript = ""
+global $last_transcript_time = 0
+global $is_interim_mode = false
+global $is_partial_mode = false
+global $stop_flows = []
+
+// Flow to handle user transcript with interruption support
+// This flow listens to every partial, interim, and final transcript and decides
+// to interrupt the bot response, set the new active transcript, and ignore spurious transcripts
+flow handle user transcript with interruption $mode="interim" $stop_flows_list=[]
+  $is_interim_mode = $mode == "interim"
+  $is_partial_mode = $mode == "partial"
+  $stop_flows = $stop_flows_list
+  
+  // Listen for speech recognition results
+  activate listen for speech recognition
+
+// Flow to listen for speech recognition results
+flow listen for speech recognition
+  // Wait for speech recognition events
+  match SpeechRecognitionEvent() as $event
+  
+  // Check if this is a final or interim transcript
+  if $event.is_final
+    // Process final transcript
+    process transcript $event.transcript true
+  else if $is_interim_mode and not $event.is_final
+    // Process interim transcript if in interim mode
+    process transcript $event.transcript false
+  else if $is_partial_mode
+    // Process partial transcript if in partial mode
+    process transcript $event.transcript false
+  
+  // Continue listening
+  listen for speech recognition
+
+// Flow to process a transcript (final, interim, or partial)
+flow process transcript $transcript $is_final
+  // Check if transcript is spurious
+  $is_spurious = await IsSpuriousAction(query=$transcript)
+  
+  if $is_spurious
+    // Log spurious transcript and ignore
+    log "Ignoring spurious transcript: {$transcript}"
+    return
+  
+  // Log the transcript
+  await LogTranscriptAction(transcript=$transcript, is_final=$is_final)
+  
+  // Check if we need to interrupt any active flows
+  if $stop_flows and len($stop_flows) > 0
+    // Interrupt active flows
+    for $flow_name in $stop_flows
+      interrupt flow $flow_name
+  
+  // Update active transcript and timestamp
+  $active_transcript = $transcript
+  $last_transcript_time = time.time()
+  
+  // Notify that user partially said something
+  emit UserPartiallySaidSomethingEvent(transcript=$transcript)
+
+// Event for user partially said something
+struct UserPartiallySaidSomethingEvent
+  transcript: str
+
+// Flow to wait for user to partially say something
+flow user partially said something as $ref
+  match UserPartiallySaidSomethingEvent() as $event
+  $ref = $event

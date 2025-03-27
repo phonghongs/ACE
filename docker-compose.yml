@@ -1,0 +1,112 @@
+version: '3'
+
+services:
+  # Redis for event streaming
+  redis:
+    container_name: redis-server
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - ace-network
+
+  # ACE Chat Engine with event interface
+  chat-engine:
+    container_name: chat-engine
+    image: nvcr.io/nvidia/ace/chat-engine:4.1.0
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./custom_bot:/workspace/config
+    ports:
+      - "9000:9000"
+    command: aceagent chat event -c /workspace/config --log-path /workspace/log
+    networks:
+      - ace-network
+    depends_on:
+      - redis
+
+  # ACE Chat Controller with speech UMIM pipeline
+  chat-controller:
+    container_name: chat-controller
+    image: nvcr.io/nvidia/ace/chat-controller:4.1.0
+    environment:
+      - PIPELINE=speech_umim
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./custom_bot:/workspace/config
+    ports:
+      - "50055:50055"
+    networks:
+      - ace-network
+    depends_on:
+      - redis
+      - chat-engine
+
+  # Custom Whisper ASR component
+  whisper-asr:
+    container_name: whisper-asr
+    build:
+      context: ./custom_components/whisper-asr
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_HOST=redis-server
+      - REDIS_PORT=6379
+      - SILENCE_THRESHOLD=${SILENCE_THRESHOLD:-500}
+    volumes:
+      - /dev/snd:/dev/snd
+    devices:
+      - /dev/snd:/dev/snd
+    networks:
+      - ace-network
+    depends_on:
+      - redis
+
+  # Custom ElevenLabs TTS component
+  elevenlabs-tts:
+    container_name: elevenlabs-tts
+    build:
+      context: ./custom_components/elevenlabs-tts
+    environment:
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-Adam}
+      - ELEVENLABS_MODEL_ID=${ELEVENLABS_MODEL_ID:-eleven_monolingual_v1}
+      - REDIS_HOST=redis-server
+      - REDIS_PORT=6379
+      - PORT=5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - /dev/snd:/dev/snd
+    devices:
+      - /dev/snd:/dev/snd
+    networks:
+      - ace-network
+    depends_on:
+      - redis
+
+  # Web UI for speech-based interaction
+  bot-web-ui-client:
+    container_name: bot-web-ui-client
+    image: nvcr.io/nvidia/ace/ace-agent-ui-client:4.1.0
+    ports:
+      - "7006:80"
+    networks:
+      - ace-network
+
+  # Web UI server for speech interface
+  bot-web-ui-speech:
+    container_name: bot-web-ui-speech
+    image: nvcr.io/nvidia/ace/ace-agent-ui-server:4.1.0
+    ports:
+      - "7007:7007"
+    command: --ace-agent-speech-interface grpc
+    networks:
+      - ace-network
+    depends_on:
+      - bot-web-ui-client
+      - chat-controller
+
+networks:
+  ace-network:
+    driver: bridge
